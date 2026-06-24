@@ -1,0 +1,155 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example 1.5.2.2"
+        required: true
+        default: "1.0.0.0"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  ACR_AUTHOR: LccMch
+  ACR_DESCRIPTION: LccMch - FFXIV 机工士 ACR 自动循环
+  ACR_JOB: MCH
+  ACR_CONTENT_SCOPE: Unspecified
+  ACR_API_VERSION: "15"
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          if ($version.StartsWith("v")) {
+            $version = $version.Substring(1)
+          }
+          $parsedVersion = $null
+          if (-not [System.Version]::TryParse($version, [ref]$parsedVersion)) {
+            throw "Version '$version' is not a valid System.Version value."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Check reference DLLs
+        id: references
+        shell: pwsh
+        run: |
+          $required = @(
+            "Dalamud.dll",
+            "Dalamud.Bindings.ImGui.dll",
+            "Lumina.dll",
+            "Lumina.Excel.dll",
+            "ECommons.dll",
+            "PromeRotation.dll"
+          )
+          $missing = $required | Where-Object { -not (Test-Path "lib/$_") }
+          if ($missing.Count -gt 0) {
+            throw "Missing reference DLLs in lib/: $($missing -join ', ')"
+          }
+          $promeDll = Resolve-Path "lib/PromeRotation.dll"
+          $promeVersion = [System.Reflection.AssemblyName]::GetAssemblyName($promeDll).Version.ToString()
+          "prome_version=$promeVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Sync RotationMetadata version
+        shell: pwsh
+        run: |
+          $path = "MCH/MCHRotation.cs"
+          $version = "${{ steps.version.outputs.version }}"
+          $text = Get-Content -Path $path -Raw
+          $pattern = '(\[RotationMetadata\(\(uint\)Job\.MCH,\s*"[^"]+",\s*"[^"]+",\s*")[^"]+("\)\])'
+          $regex = [regex]::new($pattern)
+          $updated = $regex.Replace($text, '$1' + $version + '$2', 1)
+          if ($updated -eq $text) {
+            throw "Could not find RotationMetadata version in $path."
+          }
+          Set-Content -Path $path -Value $updated -Encoding UTF8
+
+      - name: Build
+        shell: pwsh
+        run: |
+          dotnet build MCH/MCH.csproj `
+            --configuration Release `
+            -p:OutputPath="${{ runner.temp }}\publish\" `
+            -p:AppendTargetFrameworkToOutputPath=false `
+            -p:DalamudReferenceRoot="${{ github.workspace }}\lib" `
+            -p:PromeRotationReferenceRoot="${{ github.workspace }}\lib"
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          $dist = "${{ runner.temp }}\dist"
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          Compress-Archive `
+            -Path "${{ runner.temp }}\publish\MCH.dll", "${{ runner.temp }}\publish\MCH.deps.json" `
+            -DestinationPath "$dist\latest.zip" `
+            -Force
+
+      - name: Generate repo json
+        shell: pwsh
+        run: |
+          $dist = "${{ runner.temp }}\dist"
+          $sha256 = (Get-FileHash -Algorithm SHA256 -Path "$dist\latest.zip").Hash.ToLowerInvariant()
+          $manifest = [ordered]@{
+            author = "${{ env.ACR_AUTHOR }}"
+            version = "${{ steps.version.outputs.version }}"
+            description = "${{ env.ACR_DESCRIPTION }}"
+            supportedJobs = @(
+              [ordered]@{
+                job = "${{ env.ACR_JOB }}"
+                contentScope = "${{ env.ACR_CONTENT_SCOPE }}"
+              }
+            )
+            apiVersion = [int]"${{ env.ACR_API_VERSION }}"
+            referencePromeVersion = "${{ steps.references.outputs.prome_version }}"
+            downloadUrl = "https://raw.githubusercontent.com/${{ github.repository }}/release/latest.zip"
+            sha256 = $sha256
+          }
+          $json = $manifest | ConvertTo-Json -Depth 8
+          Set-Content -Path "$dist\repo.json" -Value $json -Encoding UTF8
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: |
+            ${{ runner.temp }}\dist\latest.zip
+            ${{ runner.temp }}\dist\repo.json
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ steps.version.outputs.tag }}
+          make_latest: true
+          files: |
+            ${{ runner.temp }}\dist\latest.zip
+            ${{ runner.temp }}\dist\repo.json
+
+      - name: Publish stable download branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ github.token }}
+          publish_branch: release
+          publish_dir: ${{ runner.temp }}\dist
+          force_orphan: true
