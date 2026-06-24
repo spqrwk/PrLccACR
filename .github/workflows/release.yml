@@ -113,14 +113,14 @@ jobs:
           New-Item -ItemType Directory -Force -Path $dist | Out-Null
           Compress-Archive `
             -Path "${{ runner.temp }}\publish\MCH.dll", "${{ runner.temp }}\publish\MCH.deps.json" `
-            -DestinationPath "$dist\latest.zip" `
+            -DestinationPath "$dist\LccMch.zip" `
             -Force
 
       - name: Generate repo json
         shell: pwsh
         run: |
           $dist = "${{ runner.temp }}\dist"
-          $sha256 = (Get-FileHash -Algorithm SHA256 -Path "$dist\latest.zip").Hash.ToLowerInvariant()
+          $sha256 = (Get-FileHash -Algorithm SHA256 -Path "$dist\LccMch.zip").Hash.ToLowerInvariant()
           $manifest = [ordered]@{
             author = "${{ env.ACR_AUTHOR }}"
             version = "${{ steps.version.outputs.version }}"
@@ -133,7 +133,7 @@ jobs:
             )
             apiVersion = [int]"${{ env.ACR_API_VERSION }}"
             referencePromeVersion = "${{ steps.references.outputs.prome_version }}"
-            downloadUrl = "https://raw.githubusercontent.com/${{ github.repository }}/release/latest.zip"
+            downloadUrl = "https://raw.githubusercontent.com/${{ github.repository }}/release/LccMch.zip"
             sha256 = $sha256
           }
           $json = $manifest | ConvertTo-Json -Depth 8
@@ -144,7 +144,7 @@ jobs:
         with:
           name: release-files
           path: |
-            ${{ runner.temp }}\dist\latest.zip
+            ${{ runner.temp }}\dist\LccMch.zip
             ${{ runner.temp }}\dist\repo.json
 
       - name: Publish GitHub release
@@ -156,7 +156,7 @@ jobs:
           name: ${{ steps.version.outputs.tag }}
           make_latest: true
           files: |
-            ${{ runner.temp }}\dist\latest.zip
+            ${{ runner.temp }}\dist\LccMch.zip
             ${{ runner.temp }}\dist\repo.json
 
       - name: Publish stable download branch
