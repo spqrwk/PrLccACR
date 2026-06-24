@@ -76,12 +76,27 @@ jobs:
           $version = "${{ steps.version.outputs.version }}"
           $content = [System.IO.File]::ReadAllText($path)
           Write-Host "File length: $($content.Length)"
-          Write-Host "Has RotationMetadata: $($content.Contains('RotationMetadata'))"
-          $newContent = $content -replace '("LccMch",\s*"LccMch",\s*")\d+\.\d+\.\d+\.\d+(")', "`${1}$version`${2}"
-          if ($newContent -eq $content) {
+          $lines = $content -split '\r?\n'
+          Write-Host "Line count: $($lines.Count)"
+          $found = $false
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match 'RotationMetadata') {
+              Write-Host "Found RotationMetadata at line $i"
+              Write-Host "Content: [$($lines[$i])]"
+              if ($lines[$i] -match '\d+\.\d+\.\d+\.\d+') {
+                $before = $lines[$i]
+                $lines[$i] = $lines[$i] -replace '\d+\.\d+\.\d+\.\d+', $version
+                Write-Host "Before: [$before]"
+                Write-Host "After: [$($lines[$i])]"
+                $found = ($before -ne $lines[$i])
+              }
+              break
+            }
+          }
+          if (-not $found) {
             throw "Could not find or update RotationMetadata version in $path."
           }
-          [System.IO.File]::WriteAllText($path, $newContent)
+          $lines -join [System.Environment]::NewLine | Set-Content -Path $path -Encoding UTF8 -NoNewline
           Write-Host "Version synced to $version"
 
       - name: Build
