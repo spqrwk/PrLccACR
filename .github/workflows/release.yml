@@ -74,14 +74,20 @@ jobs:
         run: |
           $path = "MCH/MCHRotation.cs"
           $version = "${{ steps.version.outputs.version }}"
-          $text = Get-Content -Path $path -Raw
-          $pattern = '(\[RotationMetadata\(\(uint\)Job\.MCH,\s*"[^"]+",\s*"[^"]+",\s*")[^"]+("\)\])'
-          $regex = [regex]::new($pattern)
-          $updated = $regex.Replace($text, '${1}' + $version + '${2}', 1)
-          if ($updated -eq $text) {
-            throw "Could not find RotationMetadata version in $path."
+          $lines = Get-Content -Path $path
+          $found = $false
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match 'RotationMetadata') {
+              $before = $lines[$i]
+              $lines[$i] = $lines[$i] -replace '\d+\.\d+\.\d+\.\d+', $version
+              if ($lines[$i] -ne $before) { $found = $true }
+              break
+            }
           }
-          Set-Content -Path $path -Value $updated -Encoding UTF8
+          if (-not $found) {
+            throw "Could not find or update RotationMetadata version in $path."
+          }
+          $lines -join [System.Environment]::NewLine | Set-Content -Path $path -Encoding UTF8
 
       - name: Build
         shell: pwsh
