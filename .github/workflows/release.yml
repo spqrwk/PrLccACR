@@ -77,7 +77,7 @@ jobs:
           $text = Get-Content -Path $path -Raw
           $pattern = '(\[RotationMetadata\(\(uint\)Job\.MCH,\s*"[^"]+",\s*"[^"]+",\s*")[^"]+("\)\])'
           $regex = [regex]::new($pattern)
-          $updated = $regex.Replace($text, '$1' + $version + '$2', 1)
+          $updated = $regex.Replace($text, '${1}' + $version + '${2}', 1)
           if ($updated -eq $text) {
             throw "Could not find RotationMetadata version in $path."
           }
