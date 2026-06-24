@@ -20,9 +20,9 @@
         <!-- Dalamud 开发 DLL 目录 -->
         <DalamudReferenceRoot Condition="'$(DalamudReferenceRoot)' == ''">$(APPDATA)\XIVLauncherCN\addon\Hooks\dev</DalamudReferenceRoot>
 
-        <!-- PromeRotation 目录：动态取最新版本号 -->
-        <PromeRotationDirs>$([System.IO.Directory]::GetDirectories('$(APPDATA)\XIVLauncherCN\installedPlugins\PromeRotation\'))</PromeRotationDirs>
-        <PromeRotationDir>$([System.Text.RegularExpressions.Regex]::Match('$(PromeRotationDirs)', '[^;]+$').Value)</PromeRotationDir>
+        <!-- PromeRotation 目录：动态取最新版本号（仅本地，CI 已通过 -p: 传入 lib/ 路径） -->
+        <PromeRotationDirs Condition="'$(PromeRotationReferenceRoot)' == ''">$([System.IO.Directory]::GetDirectories('$(APPDATA)\XIVLauncherCN\installedPlugins\PromeRotation\'))</PromeRotationDirs>
+        <PromeRotationDir Condition="'$(PromeRotationReferenceRoot)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(PromeRotationDirs)', '[^;]+$').Value)</PromeRotationDir>
         <PromeRotationReferenceRoot Condition="'$(PromeRotationReferenceRoot)' == ''">$(PromeRotationDir.TrimEnd('\'))</PromeRotationReferenceRoot>
     </PropertyGroup>
 
