@@ -81,7 +81,7 @@ jobs:
           $found = $false
           for ($i = 0; $i -lt $lines.Count; $i++) {
             if ($lines[$i] -match 'RotationMetadata') {
-              Write-Host "Found RotationMetadata at line $i: [$($lines[$i])]"
+              Write-Host "Found RotationMetadata at line ${i}: [$($lines[$i])]"
               if ($lines[$i] -match '\d+\.\d+\.\d+\.\d+') {
                 $lines[$i] = $lines[$i] -replace '\d+\.\d+\.\d+\.\d+', $version
                 Write-Host "Updated to: [$($lines[$i])]"
