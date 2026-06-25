@@ -27,6 +27,9 @@ x86/
 .idea/
 .vscode/
 
+# Decompiled PR references
+**/decompiled-*/
+
 # OS
 .DS_Store
 Thumbs.db

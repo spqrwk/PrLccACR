@@ -1,5 +1,4 @@
 using MCH.Data;
-using MCH.Helper;
 using PromeRotation.Rotation;
 
 namespace MCH;
@@ -19,12 +18,10 @@ public class MCHRotationEventHandler : IRotationEventHandler, IRotationLifecycle
         var count = MCHSettings.Instance.GetCurrentModeDefaults().Count;
         MCHSettings.Instance.RestoreQtSnapshot(MCHSettings.Instance.IsHighEnd);
         ApiHelper.提示($"LccMch [{mode}] 恢复{count}个默认值", 3);
-        MCHMacroManager.Init();
     }
 
     public void OnExitAcr()
     {
-        MCHMacroManager.Exit();
         MCHSettings.Instance.Save();
         ApiHelper.提示("LccMch ACR 已卸载", 3);
     }

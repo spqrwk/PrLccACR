@@ -1,6 +1,5 @@
 using System.Numerics;
 using MCH.Data;
-using MCH.Helper;
 using Dalamud.Bindings.ImGui;
 using PromeRotation.Data;
 
@@ -12,17 +11,13 @@ public static class MCHSettingsUI
     public static void Draw()
     {
         if (!ImGui.BeginTabBar("Settings##MCH")) return;
-        if (ImGui.BeginTabItem("通用设置"))   { DrawGeneral(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("QT管理"))     { DrawQtManage(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("默认值管理")) { DrawDefaultsManage(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("更新日志"))   { DrawChangelog(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("开发用"))     { DrawDev(); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("通用设置"))   { if (ImGui.BeginChild("##scrollGen", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar)) { DrawGeneral(); ImGui.EndChild(); } ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("QT管理"))     { if (ImGui.BeginChild("##scrollQt", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar)) { DrawQtManage(); ImGui.EndChild(); } ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("默认值管理")) { if (ImGui.BeginChild("##scrollDef", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar)) { DrawDefaultsManage(); ImGui.EndChild(); } ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("更新日志"))   { if (ImGui.BeginChild("##scrollLog", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar)) { DrawChangelog(); ImGui.EndChild(); } ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("开发用"))     { if (ImGui.BeginChild("##scrollDev", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar)) { DrawDev(); ImGui.EndChild(); } ImGui.EndTabItem(); }
         ImGui.EndTabBar();
         MCHSettings.Instance.Save();
-
-        var cmd = MCHSettings.Instance.CommandWindowOpen;
-        MCHMacroManager.DrawCommandWindow(ref cmd);
-        MCHSettings.Instance.CommandWindowOpen = cmd;
     }
 
     // ============================================================
@@ -140,11 +135,6 @@ public static class MCHSettingsUI
         }
 
         ImGui.Separator();
-        Hdr("⌨ 聊天命令");
-        ImGui.TextWrapped("使用 /Lcc_Mch <QT名称> 在聊天框切换QT。结合游戏内宏可方便手柄用户。");
-        var co = MCHSettings.Instance.CommandWindowOpen;
-        if (ImGui.Button("📋 打开命令列表")) co = true;
-        MCHSettings.Instance.CommandWindowOpen = co;
     }
 
     /// <summary>绘制指定模式分类的 QT 开关列表</summary>

@@ -195,18 +195,11 @@ public static class MCHHelper
         if (!ApiHelper.技能已解锁(MCHSkill.毒菌喷射器)) return false;
         if (!ApiHelper.技能可用(MCHSkill.毒菌喷射器)) return false;
         if (ApiHelper.玩家有状态(MCHBuff.整备预备)) return false;
-        var t = ApiHelper.目标;
-        if (t == null) return false;
-        var me = ApiHelper.玩家;
-        if (me == null) return false;
-        var nearby = ApiHelper.扇形敌人(me, t, 12f, 120f);
-        if (nearby >= 4) return true;
-        if (nearby >= 3)
-        {
-            var hp = t.MaxHp > 0 ? (float)t.CurrentHp / t.MaxHp : 1f;
-            if (!t.IsPlayer() && t.IsEnemy() && hp > 0.5f) return true;
-        }
-        return false;
+
+        var best = FindBestAoeTarget(MCHSkill.毒菌喷射器, 120f, 3);
+        if (best == null) return false;
+        ApiHelper.切换目标(best);
+        return true;
     }
 
     public static bool ShouldUseAoe(float coneRange, float coneAngle, int minTargets)

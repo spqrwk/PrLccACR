@@ -38,33 +38,29 @@ public class 野火OffGcd : IDecisionResolver
         return new(true, "野火就绪");
     }
 
-    public PAction GetAction()
+    public PAction? GetAction()
     {
-
-        // === 后半就绪：野火 → GCD → 超荷 ===
+        // === 野火 → GCD → 超荷，打包高优队列一次性执行 ===
         var queue = new List<PAction>();
-        if (!ApiHelper.GCD后半窗口)
-        {
-            Thread.Sleep(600);
-        }
+
+        // 1. 野火（oGCD，WeaveDelay 确保后半 GCD 释放）
+        queue.Add(new PAction(MCHSkill.野火, ActionType.OffGcd, ActionTargetType.Target)
+                      .WithWeaveDelay(600));
+
+        // 2. GCD：整备高价值 > 基础连击兜底
         if (ApiHelper.玩家有状态(MCHBuff.全金属爆发预备) && ApiHelper.获取QT(MCHQT.全金属爆发))
             queue.Add(new PAction(MCHSkill.全金属爆发, ActionType.Gcd, ActionTargetType.Target));
+        else if (MCHHelper.CheckReassembleGcd(ApiHelper.GCD剩余 * 1000f + MCHSettings.Instance.Cdtolerance, out var sid))
+            queue.Add(new PAction(sid, ActionType.Gcd, ActionTargetType.Target));
         else
-        {
-            var tl = ApiHelper.GCD剩余 * 1000f + MCHSettings.Instance.Cdtolerance;
-            if (MCHHelper.CheckReassembleGcd(tl, out var sid))
-            {
-                if (sid == MCHSkill.狙击弹 && ApiHelper.技能已解锁(MCHSkill.热弹) && ApiHelper.技能可用(MCHSkill.热弹))
-                    sid = MCHSkill.热弹;
-                queue.Add(new PAction(sid, ActionType.Gcd, ActionTargetType.Target));
-            }
-            else
-                queue.Add(new PAction(MCHHelper.GetBaseComboAction(), ActionType.Gcd, ActionTargetType.Target));
-        }
+            queue.Add(new PAction(MCHHelper.GetBaseComboAction(), ActionType.Gcd, ActionTargetType.Target));
 
+        // 3. 超荷（oGCD）
         queue.Add(ApiHelper.自我能力(MCHSkill.超荷));
-        ApiHelper.排入队列(queue, 高优先: true);
 
-        return new PAction(MCHSkill.野火, ActionType.OffGcd, ActionTargetType.Target);
+        ApiHelper.排入队列(queue);
+
+        // Group 自动执行，不返回
+        return null;
     }
 }

@@ -182,6 +182,33 @@ namespace MCH
         /// <summary>技能是否最近使用过</summary>
         public static bool 最近用过(uint 技能ID, int 毫秒) => ActionHelper.RecentlyUsed(技能ID, 毫秒);
 
+        /// <summary>技能任务是否已解锁</summary>
+        public static bool 技能任务已解锁(uint 技能ID) => ActionHelper.IsActionQuestUnlocked(技能ID);
+
+        /// <summary>技能等级是否足够</summary>
+        public static bool 技能等级足够(uint 技能ID) => ActionHelper.IsActionLevelEnough(技能ID);
+
+        /// <summary>技能等级和任务均已满足</summary>
+        public static bool 技能等级和任务已解锁(uint 技能ID) => ActionHelper.IsActionAvailableByLevelAndQuest(技能ID);
+
+        /// <summary>综合判断能否对目标释放技能（等级+任务+冷却+目标可选）</summary>
+        public static bool 能否释放(uint 技能ID, IBattleChara? 指定目标 = null) => ActionHelper.CanCast(技能ID, 指定目标);
+
+        /// <summary>技能复唱总时间（秒）</summary>
+        public static float 技能复唱总时间(uint 技能ID) => ActionHelper.GetActionRecastTime(技能ID);
+
+        /// <summary>技能复唱已过时间（秒）</summary>
+        public static float 技能复唱已过(uint 技能ID) => ActionHelper.GetActionRecastTimeElapsed(技能ID);
+
+        /// <summary>手动设置动画锁 0.2s（用于强制插入延迟）</summary>
+        public static void 设置动画锁() => ActionHelper.SetAnimetionLock();
+
+        /// <summary>获取光标指向的世界坐标（用于地面技能）</summary>
+        public static Vector3 光标位置 => ActionHelper.GetCursorPosition();
+
+        /// <summary>为 PAction 设置最小 GCD 已过时间（编织延迟，仅对 oGCD/Item 生效）</summary>
+        public static PAction 编织延迟(PAction action, int 最小GCD已过毫秒) => action.WithWeaveDelay(最小GCD已过毫秒);
+
         #endregion
 
         #region GCD 系统
@@ -212,6 +239,33 @@ namespace MCH
 
         #endregion
 
+        #region GCD 偏移决策（GcdOffsetEngine）
+
+        /// <summary>GCD剩余时间转毫秒</summary>
+        public static float GCD剩余毫秒 => GcdOffsetEngine.GetGcdRemainMs(GCD剩余);
+
+        /// <summary>GCD偏移决策结果：能否排队/能否使用/能否优化使用</summary>
+        public static (bool 可排队, bool 可使用, bool 可优化使用, string 原因) GCD偏移决策(bool 启用, int 排队窗口毫秒, int 偏移毫秒, int 帧补偿毫秒 = 0)
+            => GcdOffsetEngine.Decide(GCD剩余, 启用, 排队窗口毫秒, 偏移毫秒, 帧补偿毫秒);
+
+        /// <summary>GCD 是否在排队窗口内（常用简化判断）</summary>
+        public static bool GCD可排队(int 排队窗口毫秒 = 500) => GCD剩余毫秒 <= Math.Clamp(排队窗口毫秒, 50, 1000);
+
+        /// <summary>GCD 是否在偏移窗口内（优化使用判断）</summary>
+        public static bool GCD可优化使用(int 偏移毫秒, int 帧补偿毫秒 = 0) => GCD剩余毫秒 <= Math.Clamp(偏移毫秒, 0, 500) + Math.Clamp(帧补偿毫秒, 0, 100);
+
+        #endregion
+
+        #region uint 扩展：技能冷却窗口预判
+
+        /// <summary>技能冷却是否在 X 个 GCD 以内</summary>
+        public static bool 冷却在几GCD内(uint 技能ID, int GCD数) => 技能ID.CoolDownInGcds(GCD数);
+
+        /// <summary>能力技冷却是否在接下来 X 个 GCD 窗口内转好（含队列窗口容差）</summary>
+        public static bool 冷却在几GCD窗口内(uint 技能ID, int GCD数) => 技能ID.AbilityCoolDownInNextXGcdsWindow(GCD数);
+
+        #endregion
+
         #region 咏唱系统
 
         /// <summary>是否在读条</summary>
@@ -228,6 +282,41 @@ namespace MCH
 
         /// <summary>连击剩余时间（秒）</summary>
         public static float 连击剩余 => ActionHelper.GetComboLeftTime();
+
+        #endregion
+
+        #region 读条滑步
+
+        /// <summary>获取技能读条时间（毫秒）</summary>
+        public static int 技能读条毫秒(uint 技能ID)
+        {
+            var row = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Action>()?.GetRowOrDefault(技能ID);
+            if (!row.HasValue) return 0;
+            return row.Value.Cast100ms * 100;
+        }
+
+        /// <summary>调整后剩余读条时间（毫秒），已自动减去 200ms 滑步窗口</summary>
+        public static double 调整后剩余读条毫秒
+        {
+            get
+            {
+                if (!读条中) return 0;
+                return Math.Max(0, (读条总时长 - 读条已过) * 1000.0 - 200.0);
+            }
+        }
+
+        /// <summary>是否应该等待读条完成（延迟未超上限 + 剩余读条 < 剩余等待预算）</summary>
+        public static bool 应等读条(DateTime 开始时间, int 允许延迟毫秒)
+        {
+            if (允许延迟毫秒 <= 0) return false;
+            var 剩余 = 调整后剩余读条毫秒;
+            if (剩余 <= 0) return false;
+            var 已过 = (DateTime.UtcNow - 开始时间).TotalMilliseconds;
+            return 已过 < 允许延迟毫秒 && 剩余 < 允许延迟毫秒 - 已过;
+        }
+
+        /// <summary>当前读条是否在滑步窗口内（剩余读条 ≤ 200ms）</summary>
+        public static bool 滑步窗口内 => 读条中 && 调整后剩余读条毫秒 <= 0;
 
         #endregion
 
@@ -381,6 +470,10 @@ namespace MCH
 
         /// <summary>传送到鼠标位置</summary>
         public static void 传送到鼠标() => HackHelper.TeleportToMouse();
+
+        /// <summary>判断两点是否在指定范围内</summary>
+        public static bool 在范围内(Vector3 当前, Vector3 目标, float 范围, bool 忽略Y轴 = true)
+            => PosHelper.IsWithinRange(当前, 目标, 范围, 忽略Y轴);
 
         #endregion
 
@@ -604,6 +697,42 @@ namespace MCH
 
         /// <summary>队列中是否有待执行技能</summary>
         public static bool 队列中有技能 => ActionQueueManager.HasActionsInQueue();
+
+        /// <summary>将单个技能加入队列并记录使用</summary>
+        public static void 排入并记录(PAction action, bool 高优先 = false)
+            => ActionQueueManager.EnqueueAndRecord(action, 高优先);
+
+        /// <summary>将一组技能加入队列并记录使用</summary>
+        public static void 排入并记录(List<PAction> actions, bool 高优先 = false)
+            => ActionQueueManager.EnqueueAndRecord(actions, 高优先);
+
+        /// <summary>GCD 队列中待执行技能数量</summary>
+        public static int GCD队列数 => ActionQueueManager.GcdCount;
+
+        /// <summary>oGCD 队列中待执行技能数量</summary>
+        public static int oGCD队列数 => ActionQueueManager.OffGcdCount;
+
+        /// <summary>是否有高优先级动作待执行</summary>
+        public static bool 有高优动作 => ActionQueueManager.HasHighPriorityAction();
+
+        /// <summary>Always 队列中是否有动作</summary>
+        public static bool Always队列有动作 => ActionQueueManager.HasActionsInAlwaysQueue();
+
+        /// <summary>GCD 队列中是否有动作</summary>
+        public static bool GCD队列有动作 => ActionQueueManager.HasActionsInGcdQueue();
+
+        /// <summary>oGCD 队列中是否有动作</summary>
+        public static bool oGCD队列有动作 => ActionQueueManager.HasActionsInOffGcdQueue();
+
+        #endregion
+
+        #region GCD 卡死检测（GcdWatchdogService）
+
+        /// <summary>GCD 是否卡死（框架检测到 GCD 长时间无进展时强制返回0）</summary>
+        public static bool GCD卡死 => ActionHelper.Watchdog?.ShouldForceRemainZero ?? false;
+
+        /// <summary>GCD 卡死持续时间（秒）</summary>
+        public static double GCD卡死时长 => ActionHelper.Watchdog?.StuckDurationSeconds ?? 0;
 
         #endregion
 

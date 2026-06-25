@@ -21,17 +21,22 @@ public class 过热连击Gcd : IDecisionResolver
         if (ApiHelper.获取QT(MCHQT.优先打123)) return new(false, "优先123");
         if (!ApiHelper.玩家有状态(MCHBuff.过热)) return new(false, "未过热");
 
-        if (MCHHelper.ShouldUseAoe(5f, 120f, 5) && ApiHelper.技能已解锁(MCHSkill.自动弩))
-            return new(true, "过热AOE：自动弩");
         var ha = MCHHelper.GetHeatBlastAction();
         if (!ApiHelper.技能已解锁(ha)) return new(false, "热冲击未解锁");
-        return new(true, "过热：热冲击");
+        return new(true, "过热连击");
     }
 
     public PAction GetAction()
     {
         if (MCHHelper.ShouldUseAoe(5f, 120f, 5) && ApiHelper.技能已解锁(MCHSkill.自动弩))
+        {
+            
+        var best = MCHHelper.FindBestAoeTarget(MCHSkill.散射, 120f, 2);
+        if (best != null)
+            ApiHelper.切换目标(best);
             return new(MCHSkill.自动弩, ActionType.Gcd, ActionTargetType.Target);
+        }
+
         return new(MCHHelper.GetHeatBlastAction(), ActionType.Gcd, ActionTargetType.Target);
     }
 }

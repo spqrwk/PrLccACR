@@ -60,9 +60,6 @@ public class MCHSettings
     /// <summary>欢迎语音</summary>
     public bool needwelcome = true;
 
-    /// <summary>命令窗口开关</summary>
-    public bool CommandWindowOpen = false;
-
     /// <summary>小怪密集度阈值</summary>
     public int ConcentrationThreshold = 5;
 

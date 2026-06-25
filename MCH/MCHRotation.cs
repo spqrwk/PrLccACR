@@ -11,7 +11,7 @@ using PromeRotation.Rotation;
 
 namespace MCH;
 
-[RotationMetadata((uint)Job.MCH, "LccMch", "LccMch", "1.0.0.0")]
+[RotationMetadata((uint)Job.MCH, "LccMch", "LccMch", "1.0.0.2")]
 public class MCHRotation : IRotation
 {
     public string RotationName => "LccMch";

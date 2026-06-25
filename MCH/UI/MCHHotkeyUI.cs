@@ -17,9 +17,10 @@ public static class MCHHotkeyUI
         p.AddHotkey("超荷",   new PAction(MCHSkill.超荷, ActionType.OffGcd, ActionTargetType.Self));
         p.AddHotkey("策动",   new PAction(MCHSkill.策动, ActionType.OffGcd, ActionTargetType.Self));
         p.AddHotkey("武装解除", new PAction(MCHSkill.武装解除, ActionType.OffGcd, ActionTargetType.Target));
-        p.AddHotkey("火焰喷射器", new PAction(MCHSkill.火焰喷射器, ActionType.OffGcd, ActionTargetType.Target));
+        p.AddHotkey("火焰喷射器", new PAction(MCHSkill.火焰喷射器, ActionType.Gcd, ActionTargetType.Target));
         p.AddHotkey("人偶结算", new PAction(MCHSkill.超档后式人偶, ActionType.OffGcd, ActionTargetType.Target));
         p.AddHotkey("野火结算", new PAction(MCHSkill.起爆器, ActionType.OffGcd, ActionTargetType.Target));
+        p.AddHotkey("极限技",   new PAction(ApiHelper.LB技能ID, ActionType.LimitBreak, ActionTargetType.Target));
         p.AddHotkey("速行",   new PAction(MCHSkill.速行, ActionType.OffGcd, ActionTargetType.Self));
         HotkeyManager.Instance.AddHotkeyPanel(p);
     }
