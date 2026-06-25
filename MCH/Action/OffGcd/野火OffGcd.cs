@@ -22,6 +22,8 @@ public class 野火OffGcd : IDecisionResolver
         if (ApiHelper.最近用过(MCHSkill.野火, 1500)) return new(false, "刚用过");
         if (ApiHelper.玩家有状态(MCHBuff.野火)) return new(false, "已贴野火");
         if (!超荷OffGcd.CanBurst()) return new(false, "爆发资源不足");
+        if(ApiHelper.队列中有技能) return new(false, "已排列野火");
+           
 
         // // GCD 后半窗口检测：野火只在 GCD 后半释放，给前半留时间插 GCD
         // if (!ApiHelper.GCD后半安全) return new(false, "等待GCD后半");
@@ -43,6 +45,8 @@ public class 野火OffGcd : IDecisionResolver
         // === 野火 → GCD → 超荷，打包高优队列一次性执行 ===
         var queue = new List<PAction>();
 
+        if(ApiHelper.最近用过(MCHSkill.野火, 1500))
+            return null;
         // 1. 野火（oGCD，WeaveDelay 确保后半 GCD 释放）
         queue.Add(new PAction(MCHSkill.野火, ActionType.OffGcd, ActionTargetType.Target)
                       .WithWeaveDelay(600));

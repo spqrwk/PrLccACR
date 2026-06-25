@@ -10,7 +10,6 @@ public class 枪管加热OffGcd : IDecisionResolver
     {
         if (ApiHelper.玩家 == null) return new(false, "玩家未加载");
         if (ApiHelper.读条中) return new(false, "读条中");
-        if (ApiHelper.GCD剩余 * 1000f < 600f) return new(false, "GCD窗口短");
         if (ApiHelper.获取QT(MCHQT.优先打123)) return new(false, "优先123");
         if (ApiHelper.获取QT(MCHQT.停手)) return new(false, "停手");
         if (!ApiHelper.获取QT(MCHQT.枪管加热)) return new(false, "QT未开");

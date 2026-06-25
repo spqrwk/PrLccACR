@@ -22,7 +22,8 @@ public class 全金属爆发Gcd : IDecisionResolver
         if (ApiHelper.玩家有状态(MCHBuff.过热)) return new(false, "过热中");
 
         if (!ApiHelper.获取QT(MCHQT.全金属爆发)) return new(false, "QT未开");
-        
+        if (ApiHelper.有状态(p, MCHBuff.全金属爆发预备) && ApiHelper.状态剩余(p, MCHBuff.全金属爆发预备) <5) return new(true, "全金属buff不足");
+        if (ApiHelper.技能已解锁(MCHSkill.野火) && (ApiHelper.技能可用(MCHSkill.野火)|| ApiHelper.技能冷却(MCHSkill.野火) < 25)) return new(false, "未解锁");
         if (!ApiHelper.玩家有状态(MCHBuff.全金属爆发预备)) return new(false, "无全金属buff");
 
         if (ApiHelper.玩家有状态(MCHBuff.全金属爆发预备)) return new(true, "全金属预备");

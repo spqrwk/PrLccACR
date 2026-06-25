@@ -170,20 +170,24 @@ public static class MCHHelper
         var me = ApiHelper.玩家;
         if (me == null) return 1;
 
+        // 空气锚已解锁且可用 → 拦截野火
         if (ApiHelper.获取QT(MCHQT.空气锚))
         {
             var adj = ApiHelper.调整技能ID(MCHSkill.空气锚);
-            if (adj != 0 && ApiHelper.技能已解锁(adj))
-            { if (ApiHelper.技能冷却(adj) > 0 && ApiHelper.技能冷却(adj) < 9) return -1; }
-            else { var aa = ApiHelper.调整技能ID(MCHSkill.热弹); if (aa != 0 && ApiHelper.技能已解锁(aa)) { if (ApiHelper.技能冷却(aa) > 0 && ApiHelper.技能冷却(aa) < 9) return -1; } }
+            if (adj != 0 && ApiHelper.技能已解锁(adj) && ApiHelper.技能可用(adj)) return -1;
         }
+        // 回转飞锯已解锁且可用 → 拦截野火
         if (ApiHelper.获取QT(MCHQT.回转飞锯) && ApiHelper.技能已解锁(MCHSkill.回转飞锯))
-        { if (ApiHelper.技能冷却(MCHSkill.回转飞锯) > 0 && ApiHelper.技能冷却(MCHSkill.回转飞锯) < 9) return -1; }
+        {
+            if (ApiHelper.技能可用(MCHSkill.回转飞锯)) return -1;
+        }
+        // 钻头已解锁 → 有可用层数且下一层8s内转好则拦截（防充能溢出）
         if (ApiHelper.获取QT(MCHQT.钻头))
         {
             var adj = ApiHelper.调整技能ID(MCHSkill.钻头);
-            if (adj != 0 && ApiHelper.技能已解锁(adj))
-            { if (!ApiHelper.技能可用(adj) && ApiHelper.技能冷却(adj) < 9) return -1; }
+            if (adj != 0 && ApiHelper.技能已解锁(adj)
+                && ApiHelper.技能充能(adj) > 1
+                && ApiHelper.技能冷却(adj) < 9) return -1;
         }
         return 1;
     }
