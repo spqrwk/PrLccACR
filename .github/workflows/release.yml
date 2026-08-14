@@ -32,7 +32,11 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}"
+          # 手动触发优先用输入的版本号；tag 触发用 tag 名
+          $version = "${{ inputs.version }}"
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            $version = "${{ github.ref_name }}"
+          }
           if ($version.StartsWith("v")) {
             $version = $version.Substring(1)
           }
