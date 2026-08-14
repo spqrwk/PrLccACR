@@ -11,6 +11,7 @@ public class 内丹OffGcd : IDecisionResolver
         if (ApiHelper.玩家 == null) return new(false, "玩家未加载");
         if (ApiHelper.读条中) return new(false, "读条中");
         if (!MCHSettings.Instance.AutoSecondWind) return new(false, "自动内丹关闭");
+        if (ApiHelper.GCD卡死) return new(false, "GCD卡死检测中");
         if (ApiHelper.GCD剩余 * 1000f < 600f) return new(false, "GCD窗口短");
         if (!ApiHelper.技能已解锁(MCHSkill.内丹)) return new(false, "未解锁");
         if (!ApiHelper.技能可用(MCHSkill.内丹)) return new(false, "冷却中");

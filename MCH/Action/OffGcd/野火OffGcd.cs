@@ -25,6 +25,8 @@ public class 野火OffGcd : IDecisionResolver
         if (ApiHelper.最近用过(MCHSkill.野火, 1500)) return new(false, "刚用过");
         if (ApiHelper.玩家有状态(MCHBuff.野火)) return new(false, "已贴野火");
         if (!超荷OffGcd.CanBurst()) return new(false, "爆发资源不足");
+        // GCD 卡死检测激活时 GCD剩余被框架强制归零，提前释放/编织窗口判断会失真，暂不决策
+        if (ApiHelper.GCD卡死) return new(false, "GCD卡死检测中");
         // 超时兜底：入队超过 5s 视为队列已消费/失败，先解除标记（放行下一帧的 Check），防止野火被永久压制
         if (_wfQueuedAt != DateTime.MinValue && (DateTime.UtcNow - _wfQueuedAt).TotalSeconds > 5)
             _wfQueuedAt = DateTime.MinValue;

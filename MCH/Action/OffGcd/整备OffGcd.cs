@@ -18,6 +18,7 @@ public class 整备OffGcd : IDecisionResolver
         if (!ApiHelper.技能已解锁(MCHSkill.整备)) return new(false, "未解锁");
         if (ApiHelper.技能充能(MCHSkill.整备) < 1 ) return new(false, "无充能");
         if (ApiHelper.最近用过(MCHSkill.整备, 1000)) return new(false, "刚用过");
+        if (ApiHelper.GCD卡死) return new(false, "GCD卡死检测中");
         if (!MCHHelper.CheckReassembleGcd(MCHSettings.Instance.Cdtolerance, out _)) return new(false, "无合适GCD");
         return new(true, "整备就绪");
     }

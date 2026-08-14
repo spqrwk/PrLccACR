@@ -34,102 +34,104 @@ public static class MCHHelper
     // ============================================================
     // 整备目标选择（7等级段）
     // ============================================================
-    public static bool CheckReassembleGcd(float timeleft, out uint spellId)
+    public static bool CheckReassembleGcd(float timeleft, out uint spellId, bool onlyReady = false)
     {
         spellId = 0;
         var me = ApiHelper.玩家;
         if (me == null) return false;
         var level = me.Level;
-        if (level >= 96) return CheckReassemble96_100(timeleft, out spellId);
-        if (level >= 94) return CheckReassemble94_95(timeleft, out spellId);
-        if (level >= 90) return CheckReassemble90_93(timeleft, out spellId);
-        if (level >= 76) return CheckReassemble76_89(timeleft, out spellId);
-        if (level >= 58) return CheckReassemble58_75(timeleft, out spellId);
-        if (level >= 26) return CheckReassemble26_57(timeleft, out spellId);
-        if (level >= 4)  return CheckReassemble4_25(timeleft, out spellId);
+        if (level >= 96) return CheckReassemble96_100(timeleft, out spellId, onlyReady);
+        if (level >= 94) return CheckReassemble94_95(timeleft, out spellId, onlyReady);
+        if (level >= 90) return CheckReassemble90_93(timeleft, out spellId, onlyReady);
+        if (level >= 76) return CheckReassemble76_89(timeleft, out spellId, onlyReady);
+        if (level >= 58) return CheckReassemble58_75(timeleft, out spellId, onlyReady);
+        if (level >= 26) return CheckReassemble26_57(timeleft, out spellId, onlyReady);
+        if (level >= 4)  return CheckReassemble4_25(timeleft, out spellId, onlyReady);
         return false;
     }
 
-    private static bool CheckReassemble4_25(float t, out uint id)
+    private static bool CheckReassemble4_25(float t, out uint id, bool onlyReady = false)
     {
         id = 0;
-        return IsReadyOrSoon(MCHSkill.热弹, t, MCHQT.空气锚, out id);
+        return IsReadyOrSoon(MCHSkill.热弹, t, MCHQT.空气锚, out id, onlyReady);
     }
 
-    private static bool CheckReassemble26_57(float t, out uint id)
+    private static bool CheckReassemble26_57(float t, out uint id, bool onlyReady = false)
     {
         id = 0;
-        if (IsReadyOrSoon(MCHSkill.热弹, t, MCHQT.空气锚, out id)) return true;
+        if (IsReadyOrSoon(MCHSkill.热弹, t, MCHQT.空气锚, out id, onlyReady)) return true;
         var adj = ApiHelper.调整技能ID(MCHSkill.狙击弹);
         if (adj != 0 && ApiHelper.技能已解锁(adj) && ApiHelper.技能可用(adj)) { id = MCHSkill.狙击弹; return true; }
         return false;
     }
 
-    private static bool CheckReassemble58_75(float t, out uint id)
+    private static bool CheckReassemble58_75(float t, out uint id, bool onlyReady = false)
     {
         id = 0;
-        if (CheckDrill1Charge(t, MCHQT.钻头, out id)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; return true; }
+        if (CheckDrill1Charge(t, MCHQT.钻头, out id, onlyReady)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; return true; }
         var hs = GetHotShotOrAirAnchor();
-        if (IsReadyOrSoon(hs, t, MCHQT.空气锚, out id)) return true;
+        if (IsReadyOrSoon(hs, t, MCHQT.空气锚, out id, onlyReady)) return true;
         return false;
     }
 
-    private static bool CheckReassemble76_89(float t, out uint id)
+    private static bool CheckReassemble76_89(float t, out uint id, bool onlyReady = false)
     {
         id = 0;
-        if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id)) return true;
-        if (CheckDrill1Charge(t, MCHQT.钻头, out id)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; return true; }
+        if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id, onlyReady)) return true;
+        if (CheckDrill1Charge(t, MCHQT.钻头, out id, onlyReady)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; return true; }
         return false;
     }
 
-    private static bool CheckReassemble90_93(float t, out uint id)
+    private static bool CheckReassemble90_93(float t, out uint id, bool onlyReady = false)
     {
         id = 0;
-        if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id)) return true;
-        if (CheckDrill1Charge(t, MCHQT.钻头, out id)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; if (ApiHelper.连击剩余 < 3) return false; return true; }
-        if (IsReadyOrSoon(MCHSkill.回转飞锯, t, MCHQT.回转飞锯, out id)) return true;
+        if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id, onlyReady)) return true;
+        if (CheckDrill1Charge(t, MCHQT.钻头, out id, onlyReady)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; if (ApiHelper.连击剩余 < 3) return false; return true; }
+        if (IsReadyOrSoon(MCHSkill.回转飞锯, t, MCHQT.回转飞锯, out id, onlyReady)) return true;
         return false;
     }
 
-    private static bool CheckReassemble94_95(float t, out uint id)
+    private static bool CheckReassemble94_95(float t, out uint id, bool onlyReady = false)
     {
         id = 0;
-        if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id)) return true;
+        if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id, onlyReady)) return true;
         if (CheckDrill2Charge(MCHQT.钻头, out id)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; return true; }
-        if (IsReadyOrSoon(MCHSkill.回转飞锯, t, MCHQT.回转飞锯, out id)) return true;
-        if (CheckDrill1Charge(t, MCHQT.钻头, out id)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; if (ApiHelper.连击剩余 < 3) return false; return true; }
+        if (IsReadyOrSoon(MCHSkill.回转飞锯, t, MCHQT.回转飞锯, out id, onlyReady)) return true;
+        if (CheckDrill1Charge(t, MCHQT.钻头, out id, onlyReady)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; if (ApiHelper.连击剩余 < 3) return false; return true; }
         return false;
     }
 
-    private static bool CheckReassemble96_100(float t, out uint id)
+    private static bool CheckReassemble96_100(float t, out uint id, bool onlyReady = false)
     {
         id = 0;
-        if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id)) return true;
+        if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id, onlyReady)) return true;
         if (CheckDrill2Charge(MCHQT.钻头, out id)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; return true; }
-        if (IsReadyOrSoon(MCHSkill.回转飞锯, t, MCHQT.回转飞锯, out id)) return true;
+        if (IsReadyOrSoon(MCHSkill.回转飞锯, t, MCHQT.回转飞锯, out id, onlyReady)) return true;
         if (ApiHelper.技能已解锁(MCHSkill.掘地飞轮) && ApiHelper.技能可用(MCHSkill.掘地飞轮) && ApiHelper.获取QT(MCHQT.掘地飞轮)) { id = MCHSkill.掘地飞轮; return true; }
-        if (CheckDrill1Charge(t, MCHQT.钻头, out id)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; if (ApiHelper.连击剩余 < 3) return false; return true; }
+        if (CheckDrill1Charge(t, MCHQT.钻头, out id, onlyReady)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; if (ApiHelper.连击剩余 < 3) return false; return true; }
         return false;
     }
 
-    private static bool IsReadyOrSoon(uint skillId, float timeleftMs, string qtKey, out uint outId)
+    private static bool IsReadyOrSoon(uint skillId, float timeleftMs, string qtKey, out uint outId, bool onlyReady = false)
     {
         outId = 0;
         if (!ApiHelper.获取QT(qtKey)) return false;
         var adj = ApiHelper.调整技能ID(skillId);
         if (adj == 0 || !ApiHelper.技能已解锁(adj)) return false;
         if (ApiHelper.技能可用(adj)) { outId = adj; return true; }
-        if (ApiHelper.技能冷却(adj) * 1000f <= timeleftMs) { outId = adj; return true; }
+        // onlyReady=true（GCD 卡死检测期间）时跳过"即将就绪"窗口预判，避免 GCD剩余被强制归零导致的误判
+        if (!onlyReady && ApiHelper.技能冷却(adj) * 1000f <= timeleftMs) { outId = adj; return true; }
         return false;
     }
 
-    private static bool CheckDrill1Charge(float timeleft, string qtKey, out uint id)
+    private static bool CheckDrill1Charge(float timeleft, string qtKey, out uint id, bool onlyReady = false)
     {
         id = 0;
         var adj = ApiHelper.调整技能ID(MCHSkill.钻头);
         if (adj == 0 || !ApiHelper.技能已解锁(adj)) return false;
         var cdMs = ApiHelper.技能冷却(adj) * 1000f;
-        if ((ApiHelper.技能可用(adj) || (cdMs - 20000f) <= timeleft) && ApiHelper.获取QT(qtKey)) { id = adj; return true; }
+        if (ApiHelper.技能可用(adj) && ApiHelper.获取QT(qtKey)) { id = adj; return true; }
+        if (!onlyReady && (cdMs - 20000f) <= timeleft && ApiHelper.获取QT(qtKey)) { id = adj; return true; }
         return false;
     }
 

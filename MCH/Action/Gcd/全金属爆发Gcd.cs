@@ -22,7 +22,10 @@ public class 全金属爆发Gcd : IDecisionResolver
         if (ApiHelper.玩家有状态(MCHBuff.过热)) return new(false, "过热中");
 
         if (!ApiHelper.获取QT(MCHQT.全金属爆发)) return new(false, "QT未开");
-        if (ApiHelper.有状态(p, MCHBuff.全金属爆发预备) && ApiHelper.状态剩余(p, MCHBuff.全金属爆发预备) < 15) return new(true, "全金属预备");
+        // 没有全金属预备 buff 时技能无法施放（超荷二段的前提），即使冷却为 0 也不能放
+        if (!ApiHelper.玩家有状态(MCHBuff.全金属爆发预备)) return new(false, "无全金属buff");
+        // buff 剩余 < 15s 时立即放行，避免过期浪费
+        if (ApiHelper.状态剩余(p, MCHBuff.全金属爆发预备) < 15) return new(true, "全金属预备");
 
         // 等野火（复用 AE 版逻辑）：无野火buff 且 (野火可用 或 全金属预备剩余 >= 野火CD+2500ms) 才等
         if (!ApiHelper.玩家有状态(MCHBuff.野火))
