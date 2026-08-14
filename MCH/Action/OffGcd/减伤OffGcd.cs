@@ -23,7 +23,9 @@ public class 减伤OffGcd : IDecisionResolver
         }
 
         var t = ApiHelper.目标;
-        if (ApiHelper.技能已解锁(MCHSkill.武装解除) && ApiHelper.技能可用(MCHSkill.武装解除) && t != null && t.IsEnemy())
+        // 武装解除是对目标技能：目标须存活且可攻击，避免目标消失/起飞时执行失败
+        if (ApiHelper.技能已解锁(MCHSkill.武装解除) && ApiHelper.技能可用(MCHSkill.武装解除)
+            && t != null && t.IsEnemy() && !t.IsDead && ApiHelper.可攻击)
         {
             if (ApiHelper.有状态(t, MCHBuff.被武装解除)) return new(false, "已有武装解除");
             if (ApiHelper.技能冷却(MCHSkill.策动) > 0 && ApiHelper.技能冷却(MCHSkill.策动) < 2) return new(false, "策动刚用过");
@@ -31,5 +33,15 @@ public class 减伤OffGcd : IDecisionResolver
         }
         return new(false, "均不可用");
     }
-    public PAction GetAction() => _id == MCHSkill.策动 ? ApiHelper.自我能力(MCHSkill.策动) : new(_id, ActionType.OffGcd, ActionTargetType.Target);
+    public PAction GetAction()
+    {
+        // 执行前防御：武装解除需目标存活且可攻击；若已失效退回策动或返回基础兜底
+        if (_id == MCHSkill.武装解除)
+        {
+            var t = ApiHelper.目标;
+            if (t == null || t.IsDead || !ApiHelper.可攻击)
+                return ApiHelper.自我能力(MCHSkill.策动); // 退化为策动（自身减伤），避免空放
+        }
+        return _id == MCHSkill.策动 ? ApiHelper.自我能力(MCHSkill.策动) : new(_id, ActionType.OffGcd, ActionTargetType.Target);
+    }
 }

@@ -18,12 +18,16 @@ public class 过热连击Gcd : IDecisionResolver
         if (p.DistanceToMe() > r) return new(false, $"过远(>{r}m)");
         if (ApiHelper.读条中) return new(false, "读条中");
         if (ApiHelper.获取QT(MCHQT.停手)) return new(false, "停手");
+        // 过热检查提前：过热期间只能打热冲击/自动弩，"优先打123"不适用，直接放行
+        if (ApiHelper.玩家有状态(MCHBuff.过热))
+        {
+            var ha = MCHHelper.GetHeatBlastAction();
+            if (!ApiHelper.技能已解锁(ha)) return new(false, "热冲击未解锁");
+            return new(true, "过热连击");
+        }
+        // 非过热：基础连击会处理，这里不拦（避免与"优先打123"组合成 GCD 死路）
         if (ApiHelper.获取QT(MCHQT.优先打123)) return new(false, "优先123");
-        if (!ApiHelper.玩家有状态(MCHBuff.过热)) return new(false, "未过热");
-
-        var ha = MCHHelper.GetHeatBlastAction();
-        if (!ApiHelper.技能已解锁(ha)) return new(false, "热冲击未解锁");
-        return new(true, "过热连击");
+        return new(false, "未过热");
     }
 
     public PAction GetAction()

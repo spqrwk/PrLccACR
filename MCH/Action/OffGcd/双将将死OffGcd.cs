@@ -1,5 +1,6 @@
 using MCH.Data;
 using PromeRotation.Data;
+using PromeRotation.Extensions;
 using PromeRotation.Resolvers;
 
 namespace MCH.Action.OffGcd;
@@ -13,6 +14,9 @@ public class 双将将死OffGcd : IDecisionResolver
         if (ApiHelper.玩家 == null) return new(false, "玩家未加载");
         if (ApiHelper.读条中) return new(false, "读条中");
         if (ApiHelper.获取QT(MCHQT.停手)) return new(false, "停手");
+        // 双将/将死/虹吸弹/弹射均为对目标技能：无目标或目标为玩家时不应尝试
+        if (ApiHelper.目标 == null) return new(false, "无目标");
+        if (ApiHelper.目标!.IsPlayer()) return new(false, "目标为玩家");
 
         // 调整技能ID：92级前=虹吸弹/弹射，92级=双将/将死
         var dcAdj = ApiHelper.调整技能ID(MCHSkill.虹吸弹);
