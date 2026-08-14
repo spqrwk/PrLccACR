@@ -1,7 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <!-- ============================================================
+         SdkFlavor：选择编译期 SDK 引用包与目标框架
+           CNGL（默认）→ PromeRotation.SDK.CNGL（国服，API15，net10.0-windows）
+           TC          → PromeRotation.SDK.TC   （繁中服，API13，net9.0-windows）
+         构建时通过 -p:SdkFlavor=TC 切换
+         ============================================================ -->
     <PropertyGroup>
-        <TargetFramework>net10.0-windows</TargetFramework>
+        <SdkFlavor Condition="'$(SdkFlavor)' == ''">CNGL</SdkFlavor>
+
+        <TargetFramework Condition="'$(SdkFlavor)' == 'TC'">net9.0-windows</TargetFramework>
+        <TargetFramework Condition="'$(SdkFlavor)' != 'TC'">net10.0-windows</TargetFramework>
+
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
@@ -9,7 +19,7 @@
         <!-- 指定输出目录（本地开发用，CI 通过 -p:OutputPath=... 覆盖） -->
         <OutputPath>$(APPDATA)\XIVLauncherCN\pluginConfigs\PromeRotation\ACR\LccMch</OutputPath>
 
-        <!-- 不再自动附加 net10.0-windows-->
+        <!-- 不再自动附加 net10.0-windows / net9.0-windows -->
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
 
@@ -18,13 +28,16 @@
     </ItemGroup>
 
     <!-- ============================================================
-         编译期 SDK 引用：PromeRotation.SDK.CNGL（国服 API15 自包含引用包）
+         编译期 SDK 引用（按 SdkFlavor 二选一）
          - 自带 Dalamud / Lumina / PromeRotation / FFXIVClientStructs 等引用程序集
-         - ECommons 作为 NuGet 依赖自动带上
          - 无需本机卫月安装环境，CI 亦可直接编译
          升级 SDK 时只需修改下方 Version。
          ============================================================ -->
-    <ItemGroup>
+    <ItemGroup Condition="'$(SdkFlavor)' == 'TC'">
+        <PackageReference Include="PromeRotation.SDK.TC" Version="0.1.0-preview.2" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(SdkFlavor)' != 'TC'">
         <PackageReference Include="PromeRotation.SDK.CNGL" Version="0.1.0-preview.3" />
     </ItemGroup>
 

@@ -19,7 +19,6 @@ env:
   ACR_DESCRIPTION: LccMch - FFXIV 机工士 ACR 自动循环
   ACR_JOB: MCH
   ACR_CONTENT_SCOPE: Unspecified
-  ACR_API_VERSION: "15"
 
 jobs:
   release:
@@ -49,27 +48,6 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restore NuGet packages
-        shell: pwsh
-        run: |
-          dotnet restore MCH/MCH.csproj
-
-      - name: Read PromeRotation reference version
-        id: references
-        shell: pwsh
-        run: |
-          # 从 NuGet 缓存中取 SDK 包内 PromeRotation.dll 的版本
-          $pkgRoot = "$HOME\.nuget\packages\promerotation.sdk.cngl"
-          $promeVersion = ""
-          if (Test-Path $pkgRoot) {
-            $verDir = Get-ChildItem $pkgRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
-            $promeDll = Get-ChildItem "$($verDir.FullName)" -Recurse -Filter "PromeRotation.dll" | Select-Object -First 1
-            if ($promeDll) {
-              $promeVersion = [System.Reflection.AssemblyName]::GetAssemblyName($promeDll.FullName).Version.ToString()
-            }
-          }
-          "prome_version=$promeVersion" >> $env:GITHUB_OUTPUT
-
       - name: Sync RotationMetadata version
         shell: pwsh
         run: |
@@ -97,47 +75,102 @@ jobs:
           $lines -join [System.Environment]::NewLine | Set-Content -Path $path -Encoding UTF8 -NoNewline
           Write-Host "Version synced to $version"
 
-      - name: Build
+      # ============================================================
+      # 双版本构建：CNGL（国服 API15 / net10）+ TC（繁中服 API13 / net9）
+      # 各自从 NuGet SDK 包动态读取 PromeRotation 版本与 Dalamud API 版本
+      # ============================================================
+      - name: Build CNGL & TC and read versions
+        id: references
         shell: pwsh
         run: |
-          dotnet build MCH/MCH.csproj `
-            --configuration Release `
-            --no-restore `
-            -p:OutputPath="${{ runner.temp }}\publish\" `
-            -p:AppendTargetFrameworkToOutputPath=false
+          $flavors = @('CNGL', 'TC')
+          foreach ($flavor in $flavors) {
+            Write-Host "===== Build flavor: $flavor ====="
+            dotnet restore MCH/MCH.csproj -p:SdkFlavor=$flavor
+            if ($LASTEXITCODE -ne 0) { throw "restore failed for $flavor" }
+            dotnet build MCH/MCH.csproj `
+              --no-restore `
+              --configuration Release `
+              -p:SdkFlavor=$flavor `
+              -p:OutputPath="${{ runner.temp }}\publish_$($flavor.ToLowerInvariant())\" `
+              -p:AppendTargetFrameworkToOutputPath=false
+            if ($LASTEXITCODE -ne 0) { throw "build failed for $flavor" }
 
-      - name: Package zip
+            # 从 NuGet 缓存读取该 flavor 的 SDK 包内 DLL 版本
+            $pkgId = "promerotation.sdk.$($flavor.ToLowerInvariant())"
+            $pkgRoot = "$HOME\.nuget\packages\$pkgId"
+            $promeVersion = ""
+            $dalamudApi = ""
+            if (Test-Path $pkgRoot) {
+              $verDir = Get-ChildItem $pkgRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
+              $promeDll = Get-ChildItem "$($verDir.FullName)" -Recurse -Filter "PromeRotation.dll" | Select-Object -First 1
+              $dalamudDll = Get-ChildItem "$($verDir.FullName)" -Recurse -Filter "Dalamud.dll" | Select-Object -First 1
+              if ($promeDll) {
+                $promeVersion = [System.Reflection.AssemblyName]::GetAssemblyName($promeDll.FullName).Version.ToString()
+              }
+              if ($dalamudDll) {
+                # Dalamud 程序集主版本 = API 版本（如 15.0.3.1 → API15 / 13.0.0.16 → API13）
+                $dalamudApi = [System.Reflection.AssemblyName]::GetAssemblyName($dalamudDll.FullName).Version.Major.ToString()
+              }
+            }
+            if ([string]::IsNullOrEmpty($dalamudApi)) {
+              $dalamudApi = "15"
+            }
+            $key = $flavor.ToLowerInvariant()
+            "${key}_prome_version=$promeVersion" >> $env:GITHUB_OUTPUT
+            "${key}_dalamud_api=$dalamudApi" >> $env:GITHUB_OUTPUT
+            Write-Host "$flavor -> prome_version=$promeVersion, dalamud_api=$dalamudApi"
+          }
+
+      - name: Package zips
         shell: pwsh
         run: |
           $dist = "${{ runner.temp }}\dist"
           New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          # 国服版：LccMch.zip
           Compress-Archive `
-            -Path "${{ runner.temp }}\publish\MCH.dll", "${{ runner.temp }}\publish\MCH.deps.json" `
+            -Path "${{ runner.temp }}\publish_cngl\MCH.dll", "${{ runner.temp }}\publish_cngl\MCH.deps.json" `
             -DestinationPath "$dist\LccMch.zip" `
             -Force
+          # 繁中服版：LccMch-TC.zip
+          Compress-Archive `
+            -Path "${{ runner.temp }}\publish_tc\MCH.dll", "${{ runner.temp }}\publish_tc\MCH.deps.json" `
+            -DestinationPath "$dist\LccMch-TC.zip" `
+            -Force
 
-      - name: Generate repo json
+      - name: Generate repo jsons
         shell: pwsh
         run: |
           $dist = "${{ runner.temp }}\dist"
-          $sha256 = (Get-FileHash -Algorithm SHA256 -Path "$dist\LccMch.zip").Hash.ToLowerInvariant()
-          $manifest = [ordered]@{
-            author = "${{ env.ACR_AUTHOR }}"
-            version = "${{ steps.version.outputs.version }}"
-            description = "${{ env.ACR_DESCRIPTION }}"
-            supportedJobs = @(
-              [ordered]@{
-                job = "${{ env.ACR_JOB }}"
-                contentScope = "${{ env.ACR_CONTENT_SCOPE }}"
-              }
-            )
-            apiVersion = [int]"${{ env.ACR_API_VERSION }}"
-            referencePromeVersion = "${{ steps.references.outputs.prome_version }}"
-            downloadUrl = "https://raw.githubusercontent.com/${{ github.repository }}/release/LccMch.zip"
-            sha256 = $sha256
+          $version = "${{ steps.version.outputs.version }}"
+
+          function New-Manifest($zipName, $dalamudApi, $promeVersion) {
+            $sha256 = (Get-FileHash -Algorithm SHA256 -Path "$dist\$zipName").Hash.ToLowerInvariant()
+            return [ordered]@{
+              author = "${{ env.ACR_AUTHOR }}"
+              version = $version
+              description = "${{ env.ACR_DESCRIPTION }}"
+              supportedJobs = @(
+                [ordered]@{
+                  job = "${{ env.ACR_JOB }}"
+                  contentScope = "${{ env.ACR_CONTENT_SCOPE }}"
+                }
+              )
+              apiVersion = [int]$dalamudApi
+              referencePromeVersion = $promeVersion
+              downloadUrl = "https://raw.githubusercontent.com/${{ github.repository }}/release/$zipName"
+              sha256 = $sha256
+            }
           }
-          $json = $manifest | ConvertTo-Json -Depth 8
-          Set-Content -Path "$dist\repo.json" -Value $json -Encoding UTF8
+
+          # 国服版 manifest：repo.json（UTF-8 无 BOM）
+          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+          $m1 = New-Manifest "LccMch.zip" "${{ steps.references.outputs.cngl_dalamud_api }}" "${{ steps.references.outputs.cngl_prome_version }}"
+          [System.IO.File]::WriteAllText("$dist\repo.json", ($m1 | ConvertTo-Json -Depth 8), $utf8NoBom)
+
+          # 繁中服版 manifest：repo-tc.json（UTF-8 无 BOM）
+          $m2 = New-Manifest "LccMch-TC.zip" "${{ steps.references.outputs.tc_dalamud_api }}" "${{ steps.references.outputs.tc_prome_version }}"
+          [System.IO.File]::WriteAllText("$dist\repo-tc.json", ($m2 | ConvertTo-Json -Depth 8), $utf8NoBom)
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
@@ -145,7 +178,9 @@ jobs:
           name: release-files
           path: |
             ${{ runner.temp }}\dist\LccMch.zip
+            ${{ runner.temp }}\dist\LccMch-TC.zip
             ${{ runner.temp }}\dist\repo.json
+            ${{ runner.temp }}\dist\repo-tc.json
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
@@ -157,7 +192,9 @@ jobs:
           make_latest: true
           files: |
             ${{ runner.temp }}\dist\LccMch.zip
+            ${{ runner.temp }}\dist\LccMch-TC.zip
             ${{ runner.temp }}\dist\repo.json
+            ${{ runner.temp }}\dist\repo-tc.json
 
       - name: Publish stable download branch
         uses: peaceiris/actions-gh-pages@v4
