@@ -107,7 +107,8 @@ public static class MCHHelper
         if (IsReadyOrSoon(MCHSkill.空气锚, t, MCHQT.空气锚, out id, onlyReady)) return true;
         if (CheckDrill2Charge(MCHQT.钻头, out id)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; return true; }
         if (IsReadyOrSoon(MCHSkill.回转飞锯, t, MCHQT.回转飞锯, out id, onlyReady)) return true;
-        if (ApiHelper.技能已解锁(MCHSkill.掘地飞轮) && ApiHelper.技能可用(MCHSkill.掘地飞轮) && ApiHelper.获取QT(MCHQT.掘地飞轮)) { id = MCHSkill.掘地飞轮; return true; }
+        if (ApiHelper.技能已解锁(MCHSkill.掘地飞轮) && ApiHelper.技能可用(MCHSkill.掘地飞轮)
+            && ApiHelper.玩家有状态(MCHBuff.掘地飞轮预备) && ApiHelper.获取QT(MCHQT.掘地飞轮)) { id = MCHSkill.掘地飞轮; return true; }
         if (CheckDrill1Charge(t, MCHQT.钻头, out id, onlyReady)) { if (CheckDrilAoe()) id = MCHSkill.毒菌喷射器; if (ApiHelper.连击剩余 < 3) return false; return true; }
         return false;
     }
