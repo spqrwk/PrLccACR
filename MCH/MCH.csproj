@@ -13,74 +13,19 @@
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
 
-    <!-- ============================================================
-         引用路径：本地默认用安装目录，CI 通过 -p: 覆盖为 lib/
-         ============================================================ -->
-    <PropertyGroup>
-        <!-- Dalamud 开发 DLL 目录 -->
-        <DalamudReferenceRoot Condition="'$(DalamudReferenceRoot)' == ''">$(APPDATA)\XIVLauncherCN\addon\Hooks\dev</DalamudReferenceRoot>
-
-        <!-- PromeRotation 目录：动态取最新版本号（仅本地，CI 已通过 -p: 传入 lib/ 路径） -->
-        <PromeRotationDirs Condition="'$(PromeRotationReferenceRoot)' == ''">$([System.IO.Directory]::GetDirectories('$(APPDATA)\XIVLauncherCN\installedPlugins\PromeRotation\'))</PromeRotationDirs>
-        <PromeRotationDir Condition="'$(PromeRotationReferenceRoot)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(PromeRotationDirs)', '[^;]+$').Value)</PromeRotationDir>
-        <PromeRotationReferenceRoot Condition="'$(PromeRotationReferenceRoot)' == ''">$(PromeRotationDir.TrimEnd('\'))</PromeRotationReferenceRoot>
-    </PropertyGroup>
-
     <ItemGroup>
         <Folder Include="Action\OffGcd\" />
     </ItemGroup>
 
-    <ItemGroup>
-        <Reference Include="Dalamud">
-            <HintPath>$(DalamudReferenceRoot)\Dalamud.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-
-        <Reference Include="Dalamud.Bindings.ImGui">
-            <HintPath>$(DalamudReferenceRoot)\Dalamud.Bindings.ImGui.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-
-        <Reference Include="ECommons">
-            <HintPath>$(PromeRotationReferenceRoot)\ECommons.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-
-        <Reference Include="Lumina">
-            <HintPath>$(DalamudReferenceRoot)\Lumina.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-
-        <Reference Include="Lumina.Excel">
-            <HintPath>$(DalamudReferenceRoot)\Lumina.Excel.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-
-        <Reference Include="PromeRotation">
-            <HintPath>$(PromeRotationReferenceRoot)\PromeRotation.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-    </ItemGroup>
-
     <!-- ============================================================
-         本地编译时自动同步引用 DLL 到 lib/ 供 CI 使用
-         CI 中跳过（GITHUB_ACTIONS 环境变量为 true）
+         编译期 SDK 引用：PromeRotation.SDK.CNGL（国服 API15 自包含引用包）
+         - 自带 Dalamud / Lumina / PromeRotation / FFXIVClientStructs 等引用程序集
+         - ECommons 作为 NuGet 依赖自动带上
+         - 无需本机卫月安装环境，CI 亦可直接编译
+         升级 SDK 时只需修改下方 Version。
          ============================================================ -->
-    <Target Name="SyncReferenceDllsToLib" BeforeTargets="BeforeBuild"
-            Condition="'$(GITHUB_ACTIONS)' != 'true'">
-        <MakeDir Directories="$(MSBuildProjectDirectory)\..\lib" />
-        <ItemGroup>
-            <ReferenceDllsForCi Include="$(DalamudReferenceRoot)\Dalamud.dll" />
-            <ReferenceDllsForCi Include="$(DalamudReferenceRoot)\Dalamud.Bindings.ImGui.dll" />
-            <ReferenceDllsForCi Include="$(DalamudReferenceRoot)\Lumina.dll" />
-            <ReferenceDllsForCi Include="$(DalamudReferenceRoot)\Lumina.Excel.dll" />
-            <ReferenceDllsForCi Include="$(PromeRotationReferenceRoot)\ECommons.dll" />
-            <ReferenceDllsForCi Include="$(PromeRotationReferenceRoot)\PromeRotation.dll" />
-        </ItemGroup>
-        <Copy SourceFiles="@(ReferenceDllsForCi)"
-              DestinationFolder="$(MSBuildProjectDirectory)\..\lib"
-              SkipUnchangedFiles="true"
-              Condition="Exists('%(ReferenceDllsForCi.Identity)')" />
-    </Target>
+    <ItemGroup>
+        <PackageReference Include="PromeRotation.SDK.CNGL" Version="0.1.0-preview.3" />
+    </ItemGroup>
 
 </Project>

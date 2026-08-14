@@ -706,12 +706,6 @@ namespace MCH
         public static void 排入并记录(List<PAction> actions, bool 高优先 = false)
             => ActionQueueManager.EnqueueAndRecord(actions, 高优先);
 
-        /// <summary>GCD 队列中待执行技能数量</summary>
-        public static int GCD队列数 => ActionQueueManager.GcdCount;
-
-        /// <summary>oGCD 队列中待执行技能数量</summary>
-        public static int oGCD队列数 => ActionQueueManager.OffGcdCount;
-
         /// <summary>是否有高优先级动作待执行</summary>
         public static bool 有高优动作 => ActionQueueManager.HasHighPriorityAction();
 

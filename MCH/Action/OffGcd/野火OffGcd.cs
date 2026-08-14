@@ -7,6 +7,9 @@ namespace MCH.Action.OffGcd;
 
 public class 野火OffGcd : IDecisionResolver
 {
+    /// <summary>野火入队时间戳（DateTime.MinValue = 未排队），用于防重入：仅拦自己排的野火，不拦其他技能</summary>
+    private DateTime _wfQueuedAt = DateTime.MinValue;
+
     public CheckResult Check()
     {
         if (ApiHelper.玩家 == null) return new(false, "玩家未加载");
@@ -22,7 +25,11 @@ public class 野火OffGcd : IDecisionResolver
         if (ApiHelper.最近用过(MCHSkill.野火, 1500)) return new(false, "刚用过");
         if (ApiHelper.玩家有状态(MCHBuff.野火)) return new(false, "已贴野火");
         if (!超荷OffGcd.CanBurst()) return new(false, "爆发资源不足");
-        if(ApiHelper.队列中有技能) return new(false, "已排列野火");
+        // 超时兜底：入队超过 5s 视为队列已消费/失败，先解除标记（放行下一帧的 Check），防止野火被永久压制
+        if (_wfQueuedAt != DateTime.MinValue && (DateTime.UtcNow - _wfQueuedAt).TotalSeconds > 5)
+            _wfQueuedAt = DateTime.MinValue;
+        // 防重入：仅当野火自己已入队（5s 内）且队列未清空时拦截；其他技能排队不再压制野火
+        if (_wfQueuedAt != DateTime.MinValue && ApiHelper.队列中有技能) return new(false, "已排列野火");
            
 
         // // GCD 后半窗口检测：野火只在 GCD 后半释放，给前半留时间插 GCD
@@ -63,6 +70,7 @@ public class 野火OffGcd : IDecisionResolver
         queue.Add(ApiHelper.自我能力(MCHSkill.超荷));
 
         ApiHelper.排入队列(queue);
+        _wfQueuedAt = DateTime.UtcNow; // 记录入队时间，Check 据此防重入
 
         // Group 自动执行，不返回
         return null;

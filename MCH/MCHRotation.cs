@@ -67,7 +67,7 @@ public class MCHRotation : IRotation
     // ============================================================
     public IOpener? GetOpener()
     {
-        if (!ApiHelper.获取QT(MCHQT.启用起手) && ApiHelper.玩家 == null) return null;
+        if (!ApiHelper.获取QT(MCHQT.启用起手) || ApiHelper.玩家 == null) return null;
         var n = ApiHelper.时间轴起手名称;
         if (string.IsNullOrWhiteSpace(n)) n = ApiHelper.元数据起手名称;
         if (!string.IsNullOrWhiteSpace(n))

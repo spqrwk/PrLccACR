@@ -37,6 +37,8 @@ Thumbs.db
 # PromeRotation local settings (contains machine-specific paths)
 *.local.json
 
-# But keep lib/ DLLs (they're needed for CI)
-!lib/*.dll
-!lib/*.deps.json
+# NuGet 本地缓存 / 临时产物（SDK 引用已改走 NuGet 包，无需 lib/）
+_nuget_packages/
+_localnuget/
+_probe/
+_prsdk*

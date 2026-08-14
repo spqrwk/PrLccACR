@@ -22,21 +22,19 @@ public class 全金属爆发Gcd : IDecisionResolver
         if (ApiHelper.玩家有状态(MCHBuff.过热)) return new(false, "过热中");
 
         if (!ApiHelper.获取QT(MCHQT.全金属爆发)) return new(false, "QT未开");
-        if (ApiHelper.有状态(p, MCHBuff.全金属爆发预备) && ApiHelper.状态剩余(p, MCHBuff.全金属爆发预备) <5) return new(true, "全金属buff不足");
-        if (ApiHelper.技能已解锁(MCHSkill.野火) && (ApiHelper.技能可用(MCHSkill.野火)|| ApiHelper.技能冷却(MCHSkill.野火) < 25)) return new(false, "未解锁");
-        if (!ApiHelper.玩家有状态(MCHBuff.全金属爆发预备)) return new(false, "无全金属buff");
+        if (ApiHelper.有状态(p, MCHBuff.全金属爆发预备) && ApiHelper.状态剩余(p, MCHBuff.全金属爆发预备) < 15) return new(true, "全金属预备");
 
-        if (ApiHelper.玩家有状态(MCHBuff.全金属爆发预备)) return new(true, "全金属预备");
-        if (!ApiHelper.技能已解锁(MCHSkill.全金属爆发)) return new(false, "未解锁");
-        if (!ApiHelper.技能可用(MCHSkill.全金属爆发)) return new(false, "冷却中");
-
+        // 等野火（复用 AE 版逻辑）：无野火buff 且 (野火可用 或 全金属预备剩余 >= 野火CD+2500ms) 才等
         if (!ApiHelper.玩家有状态(MCHBuff.野火))
         {
             var wfReady = ApiHelper.技能已解锁(MCHSkill.野火) && ApiHelper.技能可用(MCHSkill.野火);
-            var fmfRemain = ApiHelper.状态剩余(p, MCHBuff.全金属爆发预备) * 1000f;
+            var fmfRemainMs = ApiHelper.状态剩余(p, MCHBuff.全金属爆发预备) * 1000f;
             var wfCdMs = ApiHelper.技能冷却(MCHSkill.野火) * 1000f;
-            if (wfReady || fmfRemain >= wfCdMs + 2500f) return new(false, "等野火");
+            if (wfReady || fmfRemainMs >= wfCdMs + 2500f) return new(false, "等野火");
         }
+
+        if (!ApiHelper.技能已解锁(MCHSkill.全金属爆发)) return new(false, "未解锁");
+        if (!ApiHelper.技能可用(MCHSkill.全金属爆发)) return new(false, "冷却中");
         return new(true, "全金属就绪");
     }
 

@@ -49,24 +49,25 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Check reference DLLs
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          dotnet restore MCH/MCH.csproj
+
+      - name: Read PromeRotation reference version
         id: references
         shell: pwsh
         run: |
-          $required = @(
-            "Dalamud.dll",
-            "Dalamud.Bindings.ImGui.dll",
-            "Lumina.dll",
-            "Lumina.Excel.dll",
-            "ECommons.dll",
-            "PromeRotation.dll"
-          )
-          $missing = $required | Where-Object { -not (Test-Path "lib/$_") }
-          if ($missing.Count -gt 0) {
-            throw "Missing reference DLLs in lib/: $($missing -join ', ')"
+          # 从 NuGet 缓存中取 SDK 包内 PromeRotation.dll 的版本
+          $pkgRoot = "$HOME\.nuget\packages\promerotation.sdk.cngl"
+          $promeVersion = ""
+          if (Test-Path $pkgRoot) {
+            $verDir = Get-ChildItem $pkgRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
+            $promeDll = Get-ChildItem "$($verDir.FullName)" -Recurse -Filter "PromeRotation.dll" | Select-Object -First 1
+            if ($promeDll) {
+              $promeVersion = [System.Reflection.AssemblyName]::GetAssemblyName($promeDll.FullName).Version.ToString()
+            }
           }
-          $promeDll = Resolve-Path "lib/PromeRotation.dll"
-          $promeVersion = [System.Reflection.AssemblyName]::GetAssemblyName($promeDll).Version.ToString()
           "prome_version=$promeVersion" >> $env:GITHUB_OUTPUT
 
       - name: Sync RotationMetadata version
@@ -101,10 +102,9 @@ jobs:
         run: |
           dotnet build MCH/MCH.csproj `
             --configuration Release `
+            --no-restore `
             -p:OutputPath="${{ runner.temp }}\publish\" `
-            -p:AppendTargetFrameworkToOutputPath=false `
-            -p:DalamudReferenceRoot="${{ github.workspace }}\lib" `
-            -p:PromeRotationReferenceRoot="${{ github.workspace }}\lib"
+            -p:AppendTargetFrameworkToOutputPath=false
 
       - name: Package zip
         shell: pwsh

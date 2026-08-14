@@ -30,11 +30,13 @@ public class 过热连击Gcd : IDecisionResolver
     {
         if (MCHHelper.ShouldUseAoe(5f, 120f, 5) && ApiHelper.技能已解锁(MCHSkill.自动弩))
         {
-            
-        var best = MCHHelper.FindBestAoeTarget(MCHSkill.散射, 120f, 2);
-        if (best != null)
-            ApiHelper.切换目标(best);
-            return new(MCHSkill.自动弩, ActionType.Gcd, ActionTargetType.Target);
+            // 复用 AE 版逻辑：用自动弩自身 ID 找目标（5目标/120°），找不到就回退热冲击
+            var best = MCHHelper.FindBestAoeTarget(MCHSkill.自动弩, 120f, 5);
+            if (best != null)
+            {
+                ApiHelper.切换目标(best);
+                return new(MCHSkill.自动弩, ActionType.Gcd, ActionTargetType.Target);
+            }
         }
 
         return new(MCHHelper.GetHeatBlastAction(), ActionType.Gcd, ActionTargetType.Target);
