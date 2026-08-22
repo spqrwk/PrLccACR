@@ -485,6 +485,9 @@ namespace MCH
         /// <summary>5米内敌人</summary>
         public static uint 五米敌人 => TargetHelper.EnemyIn5m();
 
+        /// <summary>自身指定半径内敌人数量</summary>
+        public static uint 范围敌人(float 范围) => TargetHelper.EnemyInRange(范围);
+
         /// <summary>目标周围敌人数量</summary>
         public static uint 目标周围敌人(IBattleChara? 目标, float 范围) => 目标 == null ? 0 : TargetHelper.EnemyInRangeTarget(目标, 范围);
 

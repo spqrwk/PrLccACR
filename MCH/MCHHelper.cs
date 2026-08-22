@@ -201,11 +201,15 @@ public static class MCHHelper
         if (!ApiHelper.获取QT(MCHQT.AOE)) return false;
         if (!ApiHelper.技能已解锁(MCHSkill.毒菌喷射器)) return false;
         if (!ApiHelper.技能可用(MCHSkill.毒菌喷射器)) return false;
+        // 整备必须交给钻头；无论怪物数量多少，都不能让毒菌消耗整备预备。
         if (ApiHelper.玩家有状态(MCHBuff.整备预备)) return false;
 
-        var best = FindBestAoeTarget(MCHSkill.毒菌喷射器, 120f, 3);
-        if (best == null) return false;
-        ApiHelper.切换目标(best);
+        var concentrationThreshold = Math.Max(3, MCHSettings.Instance.ConcentrationThreshold);
+        var best = FindBestAoeTarget(MCHSkill.毒菌喷射器, 120f, concentrationThreshold);
+        if (best != null)
+            ApiHelper.切换目标(best);
+        else if (ApiHelper.范围敌人(12f) < concentrationThreshold)
+            return false;
         return true;
     }
 

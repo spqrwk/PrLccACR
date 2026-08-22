@@ -9,6 +9,7 @@ public class 枪管加热OffGcd : IDecisionResolver
     public CheckResult Check()
     {
         if (ApiHelper.玩家 == null) return new(false, "玩家未加载");
+        if (MCHSettings.Instance.IsHighEnd && ApiHelper.目标 == null) return new(false, "高难模式无目标");
         if (ApiHelper.读条中) return new(false, "读条中");
         if (ApiHelper.获取QT(MCHQT.优先打123)) return new(false, "优先123");
         if (ApiHelper.获取QT(MCHQT.停手)) return new(false, "停手");

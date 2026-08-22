@@ -9,6 +9,7 @@ public class 机器人OffGcd : IDecisionResolver
     public CheckResult Check()
     {
         if (ApiHelper.玩家 == null) return new(false, "玩家未加载");
+        if (MCHSettings.Instance.IsHighEnd && ApiHelper.目标 == null) return new(false, "高难模式无目标");
         if (ApiHelper.获取QT(MCHQT.停手)) return new(false, "停手");
         if (!ApiHelper.获取QT(MCHQT.机器人)) return new(false, "QT未开");
         var ra = MCHHelper.GetRobotAction();
