@@ -1,0 +1,15 @@
+{
+  "author": "LccMch",
+  "version": "1.0.0.11",
+  "description": "LccMch - FFXIV 机工士 ACR 自动循环",
+  "supportedJobs": [
+    {
+      "job": "MCH",
+      "contentScope": "Unspecified"
+    }
+  ],
+  "apiVersion": 15,
+  "referencePromeVersion": "1.5.9.4",
+  "downloadUrl": "https://raw.githubusercontent.com/spqrwk/PrLccACR/release/LccMch.zip",
+  "sha256": "ba8fed9dde974531a52bd351508279c29cc23a1a58cc58cd0c541a8e6c5f3f20"
+}
