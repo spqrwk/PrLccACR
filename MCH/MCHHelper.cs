@@ -132,7 +132,11 @@ public static class MCHHelper
         if (adj == 0 || !ApiHelper.技能已解锁(adj)) return false;
         var cdMs = ApiHelper.技能冷却(adj) * 1000f;
         if (ApiHelper.技能可用(adj) && ApiHelper.获取QT(qtKey)) { id = adj; return true; }
-        if (!onlyReady && (cdMs - 20000f) <= timeleft && ApiHelper.获取QT(qtKey)) { id = adj; return true; }
+        // 2 层充能（94+）：cdMs 是到全满的总时间，减去单层 CD(20s) 才是到下一层就绪的剩余时间
+        // 单层（58-93）：cdMs 本身就是到下一发就绪的剩余时间，不需要偏移
+        var maxCharges = ApiHelper.技能最大充能(adj);
+        var offsetMs = maxCharges >= 2 ? 20000f : 0f;
+        if (!onlyReady && (cdMs - offsetMs) <= timeleft && ApiHelper.获取QT(qtKey)) { id = adj; return true; }
         return false;
     }
 
